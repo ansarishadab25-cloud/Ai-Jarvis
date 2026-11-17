@@ -32,7 +32,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.HearingDisabled
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
@@ -49,7 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,11 +56,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +66,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.model.AssistantState
 import com.example.model.SpeechLanguage
 import com.example.ui.components.AudioWaveVisualizer
@@ -91,19 +92,35 @@ import com.example.ui.theme.JarvisTextSecondary
 @Composable
 fun JarvisScreen(
     viewModel: JarvisViewModel,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val assistantState by viewModel.assistantState.collectAsState()
-    val chatMessages by viewModel.chatMessages.collectAsState()
-    val rmsLevel by viewModel.rmsLevel.collectAsState()
-    val partialText by viewModel.partialText.collectAsState()
-    val currentLang by viewModel.currentLanguage.collectAsState()
-    val isHandsFree by viewModel.isHandsFreeMode.collectAsState()
-    val showHandsFreeDialog by viewModel.showHandsFreeInfo.collectAsState()
-    val showPrivacySheet by viewModel.showPrivacySheet.collectAsState()
-    val isHistoryEnabled by viewModel.isHistoryEnabled.collectAsState()
-    val commandHistory by viewModel.commandHistory.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.stopAll()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val assistantState by viewModel.assistantState.collectAsStateWithLifecycle()
+    val chatMessages by viewModel.chatMessages.collectAsStateWithLifecycle()
+    val rmsLevel by viewModel.rmsLevel.collectAsStateWithLifecycle()
+    val partialText by viewModel.partialText.collectAsStateWithLifecycle()
+    val currentLang by viewModel.currentLanguage.collectAsStateWithLifecycle()
+    val isHandsFree by viewModel.isHandsFreeMode.collectAsStateWithLifecycle()
+    val showHandsFreeDialog by viewModel.showHandsFreeInfo.collectAsStateWithLifecycle()
+    val showPrivacySheet by viewModel.showPrivacySheet.collectAsStateWithLifecycle()
+    val isHistoryEnabled by viewModel.isHistoryEnabled.collectAsStateWithLifecycle()
+    val cloudHistoryState by viewModel.cloudHistoryState.collectAsStateWithLifecycle()
+    val cloudSyncError by viewModel.cloudSyncError.collectAsStateWithLifecycle()
 
     var hasAudioPermission by remember {
         mutableStateOf(
@@ -153,6 +170,7 @@ fun JarvisScreen(
                 JarvisTopBar(
                     currentLang = currentLang,
                     isHandsFree = isHandsFree,
+                    hasSyncError = cloudSyncError != null,
                     onLanguageMenuClick = { languageMenuExpanded = true },
                     onHandsFreeClick = { viewModel.requestEnableHandsFree() },
                     onPrivacyClick = { viewModel.openPrivacySheet() }
@@ -220,7 +238,7 @@ fun JarvisScreen(
                     }
                 )
 
-                // Clear STOP Button (Explicitly requested)
+                // Clear STOP Button
                 AnimatedVisibility(
                     visible = isBusy,
                     enter = fadeIn(),
@@ -354,14 +372,20 @@ fun JarvisScreen(
                 )
             }
 
-            // Privacy & Local History Sheet
+            // Privacy & Cloud History Sheet
             if (showPrivacySheet) {
                 PrivacySettingsSheet(
+                    userDisplayName = viewModel.userDisplayName,
                     isHistoryEnabled = isHistoryEnabled,
-                    commandHistory = commandHistory,
+                    cloudHistoryState = cloudHistoryState,
                     onToggleHistory = { viewModel.toggleHistory(it) },
                     onClearAllHistory = { viewModel.clearAllHistory() },
                     onDeleteHistoryItem = { viewModel.deleteHistoryItem(it) },
+                    onSignOut = {
+                        viewModel.dismissPrivacySheet()
+                        viewModel.stopAll()
+                        onSignOut()
+                    },
                     onDismiss = { viewModel.dismissPrivacySheet() }
                 )
             }
@@ -373,6 +397,7 @@ fun JarvisScreen(
 private fun JarvisTopBar(
     currentLang: SpeechLanguage,
     isHandsFree: Boolean,
+    hasSyncError: Boolean,
     onLanguageMenuClick: () -> Unit,
     onHandsFreeClick: () -> Unit,
     onPrivacyClick: () -> Unit
@@ -400,11 +425,11 @@ private fun JarvisTopBar(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF00E676))
+                        .background(if (hasSyncError) Color(0xFFFF9100) else Color(0xFF00E676))
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
-                    text = "ON-DEVICE AI • SECURE",
+                    text = if (hasSyncError) "LOCAL MODE • SYNC RETRY" else "CLOUD SYNC • SECURE",
                     color = JarvisTextSecondary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium
@@ -477,7 +502,7 @@ private fun JarvisTopBar(
                 }
             }
 
-            // Privacy Icon
+            // Privacy & Account Icon
             IconButton(
                 onClick = onPrivacyClick,
                 modifier = Modifier

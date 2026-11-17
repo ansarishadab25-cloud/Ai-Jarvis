@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and voice assistant preferences.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional display name of the user."
+        },
+        "preferredLanguageCode": {
+          "type": "string",
+          "enum": ["hi-IN", "hi-en", "en-IN"],
+          "description": "Selected speech recognition and TTS language code."
+        },
+        "handsFreeEnabled": {
+          "type": "boolean",
+          "description": "Whether foreground hands-free listening mode is enabled."
+        },
+        "historyEnabled": {
+          "type": "boolean",
+          "description": "Whether command history logging is enabled."
+        },
+        "speechRate": {
+          "type": "number",
+          "description": "Text-to-speech playback rate between 0.5 and 2.0."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "preferredLanguageCode",
+        "handsFreeEnabled",
+        "historyEnabled",
+        "speechRate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CloudCommandRecord": {
+      "title": "CloudCommandRecord",
+      "description": "Voice command history entry synced for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the command owner."
+        },
+        "query": {
+          "type": "string",
+          "description": "Recognized or typed user voice command."
+        },
+        "response": {
+          "type": "string",
+          "description": "Jarvis spoken/text response."
+        },
+        "intentType": {
+          "type": "string",
+          "description": "Classified Android intent category label."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["hi-IN", "hi-en", "en-IN"],
+          "description": "Language code active when the command was processed."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETED", "FAILED", "CONFIRMED", "CANCELLED"],
+          "description": "Execution outcome status of the command."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when command was logged (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "query",
+        "response",
+        "intentType",
+        "language",
+        "status",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Per-user assistant preferences and profile document."
+    },
+    "/users/{userId}/commands/{commandId}": {
+      "schema": {
+        "$ref": "#/entities/CloudCommandRecord"
+      },
+      "description": "Per-user synced voice command history subcollection."
+    }
+  }
+}

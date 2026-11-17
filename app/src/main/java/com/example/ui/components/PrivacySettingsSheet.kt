@@ -17,19 +17,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -43,10 +46,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.CommandEntity
+import com.example.data.CloudCommandRecord
+import com.example.data.UiState
 import com.example.ui.theme.JarvisAlertRed
-import com.example.ui.theme.JarvisBackground
-import com.example.ui.theme.JarvisBorder
 import com.example.ui.theme.JarvisCyan
 import com.example.ui.theme.JarvisSurface
 import com.example.ui.theme.JarvisSurfaceVariant
@@ -59,14 +61,17 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrivacySettingsSheet(
+    userDisplayName: String?,
     isHistoryEnabled: Boolean,
-    commandHistory: List<CommandEntity>,
+    cloudHistoryState: UiState<List<CloudCommandRecord>>,
     onToggleHistory: (Boolean) -> Unit,
     onClearAllHistory: () -> Unit,
-    onDeleteHistoryItem: (CommandEntity) -> Unit,
+    onDeleteHistoryItem: (CloudCommandRecord) -> Unit,
+    onSignOut: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val historyItems = (cloudHistoryState as? UiState.Success)?.data ?: emptyList()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -96,9 +101,9 @@ fun PrivacySettingsSheet(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "प्राइवेसी और लोकल डेटा (Privacy & Local Data)",
+                        text = "प्राइवेसी और क्लाउड सिंक (Privacy & Sync)",
                         color = JarvisTextPrimary,
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -115,9 +120,9 @@ fun PrivacySettingsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Zero-Data-Leak Guarantee Card
+            // Account & Cloud Sync Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -126,33 +131,73 @@ fun PrivacySettingsSheet(
                     .border(1.dp, Color(0xFF1B4075), RoundedCornerShape(12.dp))
                     .padding(14.dp)
             ) {
-                Row(verticalAlignment = Alignment.Top) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = JarvisCyan,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "लोकल और ऑफ़लाइन गोपनीयता (100% On-Device)",
-                            color = JarvisCyan,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "आपकी आवाज़ और आदेश किसी बाहरी सर्वर पर नहीं भेजे जाते। सभी स्पीच रिकग्निशन और इंटेंट आपके एंड्रॉइड डिवाइस पर स्थानीय रूप से प्रोसेस होते हैं।",
-                            color = JarvisTextSecondary,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp
-                        )
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudDone,
+                                contentDescription = null,
+                                tint = JarvisCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = userDisplayName?.takeIf { it.isNotBlank() }
+                                        ?: "Google खाता जुड़ा हुआ है",
+                                    color = JarvisCyan,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Firebase Firestore के साथ निजी रूप से सिंक किया गया",
+                                    color = JarvisTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = onSignOut,
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, JarvisAlertRed.copy(alpha = 0.7f)),
+                            modifier = Modifier.testTag("sign_out_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = "Sign out",
+                                tint = JarvisAlertRed,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "साइन आउट",
+                                color = JarvisAlertRed,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "आपके आदेश केवल आपके Google खाते के लिए सुरक्षित हैं। वॉइस ऑडियो कहीं रिकॉर्ड या अपलोड नहीं किया जाता।",
+                        color = JarvisTextSecondary,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Toggle history
             Row(
@@ -166,13 +211,13 @@ fun PrivacySettingsSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "स्थानीय इतिहास सहेजें (Save Local History)",
+                        text = "कमांड इतिहास सहेजें (Save History)",
                         color = JarvisTextPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "आदेशों को केवल इसी डिवाइस पर सुरक्षित रूप से रखता है",
+                        text = "आदेशों को आपके निजी क्लाउड में सहेजता है",
                         color = JarvisTextSecondary,
                         fontSize = 11.sp
                     )
@@ -200,13 +245,13 @@ fun PrivacySettingsSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "लोकल कमांड इतिहास (${commandHistory.size})",
+                    text = "कमांड इतिहास (${historyItems.size})",
                     color = JarvisTextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                if (commandHistory.isNotEmpty()) {
+                if (historyItems.isNotEmpty()) {
                     Button(
                         onClick = onClearAllHistory,
                         colors = ButtonDefaults.buttonColors(
@@ -229,32 +274,59 @@ fun PrivacySettingsSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // History List
-            if (commandHistory.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "कोई इतिहास उपलब्ध नहीं है (No command history)",
-                        color = JarvisTextSecondary,
-                        fontSize = 13.sp
-                    )
+            when (cloudHistoryState) {
+                is UiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = JarvisCyan, modifier = Modifier.size(28.dp))
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(commandHistory, key = { it.id }) { item ->
-                        CommandHistoryCard(
-                            item = item,
-                            onDelete = { onDeleteHistoryItem(item) }
+                is UiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = cloudHistoryState.message,
+                            color = JarvisAlertRed,
+                            fontSize = 13.sp
                         )
+                    }
+                }
+                is UiState.Success -> {
+                    if (historyItems.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "कोई इतिहास उपलब्ध नहीं है (No command history)",
+                                color = JarvisTextSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(historyItems, key = { it.id }) { item ->
+                                CloudCommandHistoryCard(
+                                    item = item,
+                                    onDelete = { onDeleteHistoryItem(item) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -263,8 +335,8 @@ fun PrivacySettingsSheet(
 }
 
 @Composable
-private fun CommandHistoryCard(
-    item: CommandEntity,
+private fun CloudCommandHistoryCard(
+    item: CloudCommandRecord,
     onDelete: () -> Unit
 ) {
     Card(
@@ -297,7 +369,8 @@ private fun CommandHistoryCard(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(item.timestamp))
+                    val date = item.createdAt?.toDate() ?: Date()
+                    val timeStr = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(date)
                     Text(
                         text = timeStr,
                         color = JarvisTextSecondary,
