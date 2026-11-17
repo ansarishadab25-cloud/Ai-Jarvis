@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Arc Reactor segments -->
+    <path
+        android:pathData="M54,30 A24,24 0 0,1 78,54"
+        android:strokeWidth="3.5"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M54,78 A24,24 0 0,1 30,54"
+        android:strokeWidth="3.5"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M78,54 A24,24 0 0,1 54,78"
+        android:strokeWidth="2.0"
+        android:strokeColor="#0091EA"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M30,54 A24,24 0 0,1 54,30"
+        android:strokeWidth="2.0"
+        android:strokeColor="#0091EA"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Pulse audio dots -->
+    <path
+        android:pathData="M22,54h4 M82,54h4 M54,22v4 M54,82v4"
+        android:strokeWidth="3"
+        android:strokeColor="#64FFDA"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Center AI Microphone Core -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M54,42 c-3.3,0 -6,2.7 -6,6 v8 c0,3.3 2.7,6 6,6 s6,-2.7 6,-6 v-8 c0,-3.3 -2.7,-6 -6,-6 z" />
+    <!-- Mic Cradle -->
+    <path
+        android:pathData="M43,53 c0,6.1 4.9,11 11,11 s11,-4.9 11,-11"
+        android:strokeWidth="2.8"
+        android:strokeColor="#E0F7FA"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Mic Stand -->
+    <path
+        android:pathData="M54,64 v6 M48,70 h12"
+        android:strokeWidth="2.8"
+        android:strokeColor="#E0F7FA"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

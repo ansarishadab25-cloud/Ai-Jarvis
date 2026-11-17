@@ -1,0 +1,6 @@
+{
+  "name": "Shadab AI Jarvis",
+  "description": "Native Hindi and Hinglish voice assistant with Jarvis futuristic dark-blue UI, voice synthesis, smart intent routing, and local command history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
